@@ -1,0 +1,173 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>Among Us — Multiplayer</title>
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+<!-- SCREENS -->
+<div id="screen-menu" class="screen active">
+  <div class="menu-bg">
+    <div class="stars"></div>
+    <div class="planet"></div>
+  </div>
+  <div class="menu-content">
+    <h1 class="title">AMONG US</h1>
+    <p class="subtitle">Multiplayer · Up to 10 players</p>
+    <div class="menu-buttons">
+      <button class="btn btn-primary" onclick="showScreen('screen-name')">Play Online</button>
+      <button class="btn btn-secondary" onclick="showScreen('screen-howto')">How to Play</button>
+    </div>
+  </div>
+</div>
+
+<div id="screen-name" class="screen">
+  <div class="panel">
+    <h2>Choose Your Name & Color</h2>
+    <input id="player-name" type="text" maxlength="12" placeholder="Your name" class="input" />
+    <div class="color-grid" id="color-grid"></div>
+    <div class="row-btns">
+      <button class="btn btn-secondary" onclick="showScreen('screen-menu')">Back</button>
+      <button class="btn btn-primary" onclick="goToLobby()">Continue</button>
+    </div>
+  </div>
+</div>
+
+<div id="screen-lobby" class="screen">
+  <div class="panel">
+    <h2>Lobby</h2>
+    <div class="lobby-options">
+      <button class="btn btn-primary big" onclick="createRoom()">🚀 Create Room</button>
+      <div class="divider">or</div>
+      <div class="join-row">
+        <input id="join-code" type="text" maxlength="6" placeholder="Room code" class="input code-input" />
+        <button class="btn btn-accent" onclick="joinRoom()">Join</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div id="screen-waiting" class="screen">
+  <div class="panel wide">
+    <div class="room-header">
+      <h2>Waiting Room</h2>
+      <div class="room-code-box">
+        <span class="room-label">Room Code</span>
+        <span class="room-code" id="display-code">------</span>
+        <button class="btn-copy" onclick="copyCode()">📋 Copy</button>
+      </div>
+    </div>
+    <div id="player-list" class="player-list"></div>
+    <p class="wait-tip" id="wait-tip">Waiting for players… (need 2 minimum)</p>
+    <div class="row-btns">
+      <button class="btn btn-secondary" onclick="leaveRoom()">Leave</button>
+      <button class="btn btn-primary" id="start-btn" onclick="startGame()" style="display:none">Start Game ▶</button>
+    </div>
+  </div>
+</div>
+
+<div id="screen-howto" class="screen">
+  <div class="panel">
+    <h2>How to Play</h2>
+    <ul class="howto-list">
+      <li>🧑‍🚀 <b>Crewmates</b> complete tasks around the map.</li>
+      <li>🔪 <b>Impostors</b> secretly eliminate crewmates.</li>
+      <li>🚨 Press <b>Report</b> near a body or <b>Emergency</b> at the table to call a meeting.</li>
+      <li>🗳️ Vote to eject the player you think is the impostor.</li>
+      <li>✅ Crewmates win by completing all tasks OR ejecting all impostors.</li>
+      <li>💀 Impostors win by eliminating enough crewmates.</li>
+    </ul>
+    <h3>Controls</h3>
+    <ul class="howto-list">
+      <li><b>WASD / Arrow Keys</b> — Move</li>
+      <li><b>E / Space</b> — Interact / Use / Kill / Report</li>
+      <li>Mobile: on-screen joystick + action button</li>
+    </ul>
+    <button class="btn btn-secondary" onclick="showScreen('screen-menu')">Back</button>
+  </div>
+</div>
+
+<!-- GAME SCREEN -->
+<div id="screen-game" class="screen">
+  <canvas id="game-canvas"></canvas>
+
+  <!-- HUD -->
+  <div id="hud">
+    <div id="task-bar-wrap">
+      <div class="hud-label">Tasks</div>
+      <div id="task-bar-bg"><div id="task-bar-fill"></div></div>
+    </div>
+    <div id="hud-role"></div>
+    <div id="hud-kills"></div>
+  </div>
+
+  <!-- Action buttons -->
+  <div id="action-btns">
+    <button id="btn-use"    class="action-btn use-btn"    onclick="pressAction('use')"    style="display:none">USE</button>
+    <button id="btn-kill"   class="action-btn kill-btn"   onclick="pressAction('kill')"   style="display:none">KILL</button>
+    <button id="btn-report" class="action-btn report-btn" onclick="pressAction('report')" style="display:none">REPORT</button>
+    <button id="btn-emerg"  class="action-btn emerg-btn"  onclick="pressAction('emerg')"  style="display:none">⚠ EMERGENCY</button>
+    <button id="btn-sabotage" class="action-btn sab-btn"  onclick="pressAction('sabotage')" style="display:none">SABOTAGE</button>
+  </div>
+
+  <!-- Mobile joystick -->
+  <div id="joystick-zone">
+    <div id="joystick-base">
+      <div id="joystick-knob"></div>
+    </div>
+  </div>
+
+  <!-- Kill cooldown indicator -->
+  <div id="kill-cooldown"></div>
+</div>
+
+<!-- MEETING OVERLAY -->
+<div id="screen-meeting" class="screen">
+  <div class="meeting-panel">
+    <div class="meeting-header">
+      <h2 id="meeting-title">🚨 EMERGENCY MEETING</h2>
+      <p id="meeting-caller"></p>
+    </div>
+    <div id="meeting-chat" class="meeting-chat"></div>
+    <div id="vote-list" class="vote-list"></div>
+    <div id="vote-status" class="vote-status"></div>
+    <div class="meeting-input-row">
+      <input id="chat-input" type="text" maxlength="80" placeholder="Discuss…" class="input chat-ipt" onkeydown="chatKey(event)" />
+      <button class="btn btn-primary" onclick="sendChat()">Send</button>
+    </div>
+    <div id="vote-timer" class="vote-timer"></div>
+  </div>
+</div>
+
+<!-- RESULTS OVERLAY -->
+<div id="screen-results" class="screen">
+  <div class="results-panel">
+    <h2 id="results-title"></h2>
+    <div id="results-ejected"></div>
+    <div id="results-list"></div>
+    <button class="btn btn-primary" onclick="continueAfterMeeting()" id="results-continue">Continue</button>
+    <button class="btn btn-secondary" onclick="backToMenu()" id="results-menu" style="display:none">Main Menu</button>
+  </div>
+</div>
+
+<!-- TASK MINI-GAME -->
+<div id="screen-task" class="screen">
+  <div class="task-panel">
+    <div class="task-header">
+      <h3 id="task-title">Task</h3>
+      <button class="btn-close" onclick="closeTask()">✕</button>
+    </div>
+    <div id="task-content"></div>
+  </div>
+</div>
+
+<!-- GHOST LABEL -->
+<div id="ghost-label" style="display:none">👻 You are a ghost. Watch the living.</div>
+
+<script src="https://unpkg.com/peerjs@1.5.2/dist/peerjs.min.js"></script>
+<script src="game.js"></script>
+</body>
+</html>
